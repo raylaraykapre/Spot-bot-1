@@ -14,11 +14,9 @@ Termux-friendly Bybit spot trading bot.
 
 ## Install
 
-1. Install Python and pip on Termux:
+1. Install Python on Termux:
    - `pkg install python`
-   - `python3 -m pip install --upgrade pip`
-2. Install dependencies:
-   - `python3 -m pip install -r requirements.txt`
+2. No external dependencies required - the app uses only Python 3 built-in libraries.
 
 ## Run
 

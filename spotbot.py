@@ -12,13 +12,9 @@ import os
 import sys
 import time
 import urllib.parse
+import urllib.request
+import urllib.error
 from datetime import datetime, timedelta
-
-try:
-    import requests
-except ImportError:
-    print("Missing dependency: requests. Install with: python3 -m pip install requests")
-    sys.exit(1)
 
 CONFIG_PATH = "config.json"
 STATE_PATH = "state.json"
@@ -115,16 +111,22 @@ class BybitSpotClient:
         url = self.base_url + path
         try:
             if method == "GET":
-                response = requests.get(url, params=params, timeout=20)
+                query_string = urllib.parse.urlencode(params)
+                url_with_params = f"{url}?{query_string}" if query_string else url
+                req = urllib.request.Request(url_with_params, method="GET")
             else:
-                response = requests.post(url, data=params, timeout=20)
-            response.raise_for_status()
-            payload = response.json()
+                data = urllib.parse.urlencode(params).encode("utf-8")
+                req = urllib.request.Request(url, data=data, method="POST")
+            with urllib.request.urlopen(req, timeout=20) as response:
+                payload_text = response.read().decode("utf-8")
+                payload = json.loads(payload_text)
             if not payload.get("ret_code") == 0 and payload.get("ret_code") is not None:
                 raise RuntimeError(payload)
             if payload.get("ret_msg") and payload["ret_msg"].lower().startswith("invalid"):
                 raise RuntimeError(payload)
             return payload.get("result", payload)
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"Bybit API network error: {exc}")
         except Exception as exc:
             raise RuntimeError(f"Bybit API error: {exc}")
 
@@ -257,9 +259,10 @@ def parse_klines_for_levels(klines_1h, klines_5m, min_profit_pct, buy_buffer_pct
 
 def fetch_php_rate():
     try:
-        response = requests.get("https://api.exchangerate.host/latest?base=USD&symbols=PHP", timeout=15)
-        response.raise_for_status()
-        data = response.json()
+        url = "https://api.exchangerate.host/latest?base=USD&symbols=PHP"
+        with urllib.request.urlopen(url, timeout=15) as response:
+            data_text = response.read().decode("utf-8")
+            data = json.loads(data_text)
         rate = data.get("rates", {}).get("PHP")
         if rate:
             return float(rate)
