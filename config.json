@@ -1,0 +1,21 @@
+{
+  "mode": "demo",
+  "use_real_spot": false,
+  "use_testnet": false,
+  "api_key": "",
+  "api_secret": "",
+  "fiat_currency": "PHP",
+  "base_currency": "USDT",
+  "watch_symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "FARTCOINUSDT"
+  ],
+  "min_sell_profit_pct": 5.0,
+  "buy_buffer_pct": 1.0,
+  "gainers_count": 3,
+  "demo_start_balance": 1000.0,
+  "update_interval_seconds": 300
+}
