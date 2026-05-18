@@ -36,7 +36,7 @@ DEFAULT_CONFIG = {
     "min_sell_profit_pct": 5.0,
     "buy_buffer_pct": 1.0,
     "gainers_count": 3,
-    "demo_start_balance": 1000.0,
+    "demo_start_balance": 53.57,
     "update_interval_seconds": 300,
     "auto_real_trading": false
 }
