@@ -50,7 +50,7 @@ DEFAULT_STATE = {
     "last_run": None
 }
 
-SUPPORTED_INTERVALS = {"1h": 168, "5m": 288}
+SUPPORTED_INTERVALS = {"1h": 60, "5m": 5}
 
 
 def load_json(path, default):
@@ -120,7 +120,9 @@ class BybitSpotClient:
             with urllib.request.urlopen(req, timeout=20) as response:
                 payload_text = response.read().decode("utf-8")
                 payload = json.loads(payload_text)
-            if not payload.get("ret_code") == 0 and payload.get("ret_code") is not None:
+            if payload.get("ret_code") is not None and payload.get("ret_code") != 0:
+                raise RuntimeError(payload)
+            if payload.get("retCode") is not None and payload.get("retCode") != 0:
                 raise RuntimeError(payload)
             if payload.get("ret_msg") and payload["ret_msg"].lower().startswith("invalid"):
                 raise RuntimeError(payload)
@@ -151,12 +153,17 @@ class BybitSpotClient:
 
     def get_klines(self, symbol, interval, limit):
         limit = min(limit, 200)
-        params = {"symbol": symbol, "interval": interval, "limit": limit}
-        result = self.public_get("/spot/quote/v1/kline", params)
-        if not isinstance(result, list):
+        params = {
+            "category": "spot",
+            "symbol": symbol,
+            "interval": interval,
+            "limit": limit
+        }
+        result = self.public_get("/v5/market/kline", params)
+        if not isinstance(result, dict) or "list" not in result or not isinstance(result["list"], list):
             raise RuntimeError(f"Unexpected kline response: {result}")
         candles = []
-        for item in result:
+        for item in result["list"]:
             candles.append({
                 "open_time": int(item[0]) // 1000,
                 "open": float(item[1]),
@@ -168,13 +175,18 @@ class BybitSpotClient:
         return candles
 
     def get_tickers(self, symbol=None):
-        params = {"symbol": symbol} if symbol else {}
-        return self.public_get("/spot/quote/v1/ticker/24hr", params)
+        params = {"category": "spot"}
+        if symbol:
+            params["symbol"] = symbol
+        result = self.public_get("/v5/market/tickers", params)
+        if not isinstance(result, dict) or "list" not in result or not isinstance(result["list"], list):
+            raise RuntimeError(f"Unexpected ticker response: {result}")
+        return result["list"]
 
     def get_current_price(self, symbol):
         data = self.get_tickers(symbol)
-        if isinstance(data, dict) and "lastPrice" in data:
-            return float(data["lastPrice"])
+        if isinstance(data, list) and data:
+            return float(data[0].get("lastPrice"))
         raise RuntimeError(f"Unable to read current price for {symbol}")
 
     def get_account(self):
@@ -203,7 +215,7 @@ class BybitSpotClient:
         gainers = []
         for item in data:
             try:
-                change_pct = float(item.get("priceChangePercent", 0))
+                change_pct = float(item.get("price24hPcnt", 0)) * 100.0
                 gainers.append((item.get("symbol"), change_pct))
             except Exception:
                 continue
