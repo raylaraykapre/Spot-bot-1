@@ -38,7 +38,7 @@ DEFAULT_CONFIG = {
     "gainers_count": 3,
     "demo_start_balance": 53.57,
     "update_interval_seconds": 300,
-    "auto_real_trading": false
+    "auto_real_trading": False
 }
 
 DEFAULT_STATE = {
